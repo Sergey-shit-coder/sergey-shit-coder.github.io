@@ -32,13 +32,26 @@
             border: none;
             border-radius: 5px;
         }
+        #fileList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #fileList li {
+            padding: 10px;
+            background-color: #f0f0f0;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        #fileList li:hover {
+            background-color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
     <h1>Музыкальный плеер</h1>
     <button id="authorize">Авторизоваться в Google Drive</button>
     <button id="listFiles" style="display:none;">Показать список файлов</button>
-    <div id="fileList"></div>
+    <ul id="fileList"></ul>
     <audio id="player" controls></audio>
 
     <script>
@@ -62,6 +75,7 @@
                 scope: SCOPES
             }).then(function() {
                 document.getElementById('authorize').onclick = handleAuthClick;
+                document.getElementById('listFiles').onclick = listFiles;
             }).catch(function(error) {
                 console.error('Error initializing GAPI client:', error);
             });
@@ -93,7 +107,8 @@
                     for (var i = 0; i < files.length; i++) {
                         var file = files[i];
                         var li = document.createElement('li');
-                        li.appendChild(document.createTextNode(file.name));
+                        li.textContent = file.name;
+                        li.style.cursor = 'pointer';
                         li.onclick = (function(fileId) {
                             return function() {
                                 playFile(fileId);
@@ -104,6 +119,8 @@
                 } else {
                     console.log('No audio files found.');
                 }
+            }).catch(function(error) {
+                console.error('Error listing files:', error);
             });
         }
 
@@ -117,7 +134,11 @@
                 var url = URL.createObjectURL(blob);
                 var audioPlayer = document.getElementById('player');
                 audioPlayer.src = url;
-                return audioPlayer.play();
+                audioPlayer.play().then(() => {
+                    console.log("Playback started");
+                }).catch(error => {
+                    console.error("Playback failed:", error);
+                });
             }).catch(function(error) {
                 console.error("Error playing file:", error);
             });
