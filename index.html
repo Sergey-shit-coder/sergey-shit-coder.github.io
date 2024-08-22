@@ -70,9 +70,7 @@
         function initClient() {
             gapi.client.init({
                 apiKey: API_KEY,
-                clientId: CLIENT_ID,
                 discoveryDocs: DISCOVERY_DOCS,
-                scope: SCOPES
             }).then(function() {
                 document.getElementById('authorize').onclick = handleAuthClick;
                 document.getElementById('listFiles').onclick = listFiles;
@@ -108,7 +106,6 @@
                         var file = files[i];
                         var li = document.createElement('li');
                         li.textContent = file.name;
-                        li.style.cursor = 'pointer';
                         li.onclick = (function(fileId) {
                             return function() {
                                 playFile(fileId);
