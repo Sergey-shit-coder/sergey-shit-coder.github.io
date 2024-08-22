@@ -7,7 +7,6 @@
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
     <title>Музыкальный плеер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body {
@@ -60,88 +59,65 @@
 
         const CLIENT_ID = '203194022759-73jt3olh89ie5thvalk4ebb0gjt28j3g.apps.googleusercontent.com';
         const API_KEY = 'AIzaSyD62Gc4V10LOv0Qfd6n5iZKNFZHTsMYNjA';
-        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
         const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 
-        function handleClientLoad() {
-            gapi.load('client', initClient);
-        }
+        let tokenClient;
+        let accessToken = null;
 
-        function initClient() {
-            gapi.client.init({
-                apiKey: API_KEY,
-                discoveryDocs: DISCOVERY_DOCS,
-            }).then(function() {
-                document.getElementById('authorize').onclick = handleAuthClick;
-                document.getElementById('listFiles').onclick = listFiles;
-            }).catch(function(error) {
-                console.error('Error initializing GAPI client:', error);
-            });
-        }
-
-        function handleAuthClick() {
+        function gapiLoaded() {
             google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
                 callback: (tokenResponse) => {
                     if (tokenResponse && tokenResponse.access_token) {
+                        accessToken = tokenResponse.access_token;
                         document.getElementById('listFiles').style.display = 'block';
-                        listFiles();
                     }
                 },
-            }).requestAccessToken();
-        }
-
-        function listFiles() {
-            gapi.client.drive.files.list({
-                'pageSize': 10,
-                'fields': "nextPageToken, files(id, name)",
-                'q': "mimeType contains 'audio/'"
-            }).then(function(response) {
-                var files = response.result.files;
-                if (files && files.length > 0) {
-                    var fileList = document.getElementById('fileList');
-                    fileList.innerHTML = '';
-                    for (var i = 0; i < files.length; i++) {
-                        var file = files[i];
-                        var li = document.createElement('li');
-                        li.textContent = file.name;
-                        li.onclick = (function(fileId) {
-                            return function() {
-                                playFile(fileId);
-                            };
-                        })(file.id);
-                        fileList.appendChild(li);
-                    }
-                } else {
-                    console.log('No audio files found.');
-                }
-            }).catch(function(error) {
-                console.error('Error listing files:', error);
+            }).then(client => {
+                tokenClient = client;
+                document.getElementById('authorize').onclick = () => tokenClient.requestAccessToken();
+                document.getElementById('listFiles').onclick = listFiles;
             });
         }
 
+        function listFiles() {
+            fetch('https://www.googleapis.com/drive/v3/files?q=mimeType+contains+%27audio/%27&fields=files(id,name)', {
+                headers: { 'Authorization': 'Bearer ' + accessToken }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '';
+                data.files.forEach(file => {
+                    const li = document.createElement('li');
+                    li.textContent = file.name;
+                    li.onclick = () => playFile(file.id);
+                    fileList.appendChild(li);
+                });
+            })
+            .catch(error => console.error('Error listing files:', error));
+        }
+
         function playFile(fileId) {
-            gapi.client.drive.files.get({
-                fileId: fileId,
-                alt: 'media'
-            }).then(function(response) {
-                return response.blob();
-            }).then(function(blob) {
-                var url = URL.createObjectURL(blob);
-                var audioPlayer = document.getElementById('player');
+            fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                headers: { 'Authorization': 'Bearer ' + accessToken }
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const audioPlayer = document.getElementById('player');
                 audioPlayer.src = url;
                 audioPlayer.play().then(() => {
                     console.log("Playback started");
                 }).catch(error => {
                     console.error("Playback failed:", error);
                 });
-            }).catch(function(error) {
-                console.error("Error playing file:", error);
-            });
+            })
+            .catch(error => console.error("Error playing file:", error));
         }
 
-        window.onload = handleClientLoad;
+        window.onload = gapiLoaded;
     </script>
 </body>
 </html>
