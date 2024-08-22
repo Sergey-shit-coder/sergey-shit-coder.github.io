@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Музыкальный плеер</title>
+    <title>Музыкальный стример</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,126 +12,121 @@
             flex-direction: column;
             align-items: center;
             padding: 20px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        h1 {
+            color: var(--tg-theme-hint-color, #999999);
         }
         #player {
             margin-top: 20px;
             width: 300px;
         }
-        #fileList {
+        #playlist {
             list-style-type: none;
             padding: 0;
+            width: 100%;
+            max-width: 300px;
         }
-        #fileList li {
+        #playlist li {
             padding: 10px;
-            background-color: #f0f0f0;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
             margin-bottom: 5px;
             cursor: pointer;
+            border-radius: 5px;
         }
-        #fileList li:hover {
-            background-color: #e0e0e0;
+        #playlist li:hover {
+            background-color: var(--tg-theme-button-color, #e0e0e0);
+        }
+        #playlist li.active {
+            background-color: var(--tg-theme-button-color, #cccccc);
+            color: var(--tg-theme-button-text-color, #ffffff);
         }
     </style>
 </head>
 <body>
-    <h1>Музыкальный плеер</h1>
-    <div id="g_id_onload"
-         data-client_id="203194022759-73jt3olh89ie5thvalk4ebb0gjt28j3g.apps.googleusercontent.com"
-         data-context="signin"
-         data-ux_mode="popup"
-         data-callback="handleCredentialResponse"
-         data-auto_prompt="false">
-    </div>
-    <div class="g_id_signin"
-         data-type="standard"
-         data-shape="rectangular"
-         data-theme="outline"
-         data-text="signin_with"
-         data-size="large"
-         data-logo_alignment="left">
-    </div>
-    <button id="listFiles" style="display:none;">Показать список файлов</button>
-    <ul id="fileList"></ul>
+    <h1>Музыкальный стример</h1>
     <audio id="player" controls></audio>
+    <ul id="playlist"></ul>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        let accessToken = null;
+        const audioPlayer = document.getElementById('player');
+        const playlist = document.getElementById('playlist');
+        let currentTrack = 0;
+        let tracks = [];
 
-        function handleCredentialResponse(response) {
-            console.log("Encoded JWT ID token: " + response.credential);
-            accessToken = response.credential;
-            document.getElementById('listFiles').style.display = 'block';
+        // Замените на ваши данные
+        const username = 'sergey-shit-coder';
+        const repo = 'sergey-shit-coder.github.io';
+        const path = 'audio';
+
+        // Базовый URL для аудиофайлов
+        const baseUrl = `https://${username}.github.io/${path}/`;
+
+        // Функция для получения списка файлов из GitHub
+        async function fetchFileList() {
+            const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                tracks = data
+                    .filter(file => file.name.endsWith('.mp3'))
+                    .map(file => ({ title: file.name, file: file.name }));
+                createPlaylist();
+            } catch (error) {
+                console.error('Error fetching file list:', error);
+            }
         }
 
-        function listFiles() {
-            console.log("Listing files, access token:", accessToken);
-            if (!accessToken) {
-                console.error("No access token available");
-                return;
+        function createPlaylist() {
+            playlist.innerHTML = ''; // Очищаем существующий плейлист
+            tracks.forEach((track, index) => {
+                const li = document.createElement('li');
+                li.textContent = track.title;
+                li.onclick = () => playTrack(index);
+                playlist.appendChild(li);
+            });
+            if (tracks.length > 0) {
+                playTrack(0);
             }
+        }
 
-            fetch('https://www.googleapis.com/drive/v3/files?q=mimeType+contains+%27audio/%27&fields=files(id,name)', {
-                headers: { 'Authorization': 'Bearer ' + accessToken }
-            })
-            .then(response => {
-                console.log("Response status:", response.status);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok: ' + response.statusText);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log("Received data:", data);
-                const fileList = document.getElementById('fileList');
-                fileList.innerHTML = '';
-                if (data.files && data.files.length > 0) {
-                    data.files.forEach(file => {
-                        const li = document.createElement('li');
-                        li.textContent = file.name;
-                        li.onclick = () => playFile(file.id);
-                        fileList.appendChild(li);
-                    });
-                } else {
-                    fileList.innerHTML = '<li>No audio files found</li>';
-                }
-            })
-            .catch(error => {
-                console.error('Error listing files:', error);
-                document.getElementById('fileList').innerHTML = '<li>Error loading files</li>';
+        function playTrack(index) {
+            currentTrack = index;
+            audioPlayer.src = baseUrl + tracks[currentTrack].file;
+            audioPlayer.play().catch(e => console.error("Playback failed:", e));
+            updateActiveTrack();
+        }
+
+        function updateActiveTrack() {
+            Array.from(playlist.children).forEach((item, index) => {
+                item.classList.toggle('active', index === currentTrack);
             });
         }
 
-        function playFile(fileId) {
-            if (!accessToken) {
-                console.error("No access token available");
-                return;
-            }
-
-            fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-                headers: { 'Authorization': 'Bearer ' + accessToken }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok: ' + response.statusText);
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                const audioPlayer = document.getElementById('player');
-                audioPlayer.src = url;
-                audioPlayer.play().then(() => {
-                    console.log("Playback started");
-                }).catch(error => {
-                    console.error("Playback failed:", error);
-                });
-            })
-            .catch(error => console.error("Error playing file:", error));
+        function nextTrack() {
+            currentTrack = (currentTrack + 1) % tracks.length;
+            playTrack(currentTrack);
         }
 
-        document.getElementById('listFiles').onclick = listFiles;
+        audioPlayer.addEventListener('ended', nextTrack);
+        audioPlayer.addEventListener('error', (e) => {
+            console.error('Error loading audio:', e);
+            nextTrack();
+        });
+
+        fetchFileList();
+
+        function applyTelegramStyles() {
+            document.body.style.backgroundColor = tg.themeParams.bg_color;
+            document.body.style.color = tg.themeParams.text_color;
+        }
+
+        tg.onEvent('themeChanged', applyTelegramStyles);
+        applyTelegramStyles();
     </script>
 </body>
 </html>
