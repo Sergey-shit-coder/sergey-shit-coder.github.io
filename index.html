@@ -6,47 +6,90 @@
     <title>Музыкальный стример</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --primary-color: var(--tg-theme-button-color, #5e81ac);
+            --secondary-color: var(--tg-theme-secondary-bg-color, #eceff4);
+            --text-color: var(--tg-theme-text-color, #2e3440);
+            --bg-color: var(--tg-theme-bg-color, #ffffff);
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            max-width: 800px;
+            margin: 0 auto;
         }
         h1 {
-            color: var(--tg-theme-hint-color, #999999);
+            color: var(--primary-color);
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        #player-container {
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--secondary-color);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
         #player {
-            margin-top: 20px;
-            width: 300px;
+            width: 100%;
+            margin-bottom: 15px;
         }
         #playlist {
             list-style-type: none;
             padding: 0;
             width: 100%;
-            max-width: 300px;
+            max-width: 500px;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 10px;
+            background-color: var(--secondary-color);
         }
         #playlist li {
-            padding: 10px;
-            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 15px;
+            background-color: var(--secondary-color);
             margin-bottom: 5px;
             cursor: pointer;
             border-radius: 5px;
+            transition: background-color 0.3s ease;
         }
         #playlist li:hover {
-            background-color: var(--tg-theme-button-color, #e0e0e0);
+            background-color: var(--primary-color);
+            color: white;
         }
         #playlist li.active {
-            background-color: var(--tg-theme-button-color, #cccccc);
-            color: var(--tg-theme-button-text-color, #ffffff);
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+        button {
+            margin: 10px 0;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+            font-size: 1em;
+        }
+        button:hover {
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
     <h1>Музыкальный стример</h1>
-    <audio id="player" controls></audio>
+    <div id="player-container">
+        <audio id="player" controls></audio>
+        <button id="playButton">Воспроизвести</button>
+    </div>
     <ul id="playlist"></ul>
 
     <script>
@@ -55,20 +98,17 @@
 
         const audioPlayer = document.getElementById('player');
         const playlist = document.getElementById('playlist');
+        const playButton = document.getElementById('playButton');
         let currentTrack = 0;
         let tracks = [];
 
-        // Замените на ваши данные
         const username = 'sergey-shit-coder';
         const repo = 'sergey-shit-coder.github.io';
         const path = 'music';
-
-        // Базовый URL для аудиофайлов
         const baseUrl = `https://${username}.github.io/${path}/`;
 
-        // Функция для получения списка файлов из GitHub
         async function fetchFileList() {
-            const branch = 'main'; // или 'master', в зависимости от вашего репозитория
+            const branch = 'main';
             const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}?ref=${branch}`;
             try {
                 const response = await fetch(apiUrl);
@@ -89,12 +129,12 @@
                 createPlaylist();
             } catch (error) {
                 console.error('Error fetching file list:', error);
-                // Добавьте здесь код для отображения ошибки пользователю
+                playlist.innerHTML = '<li>Ошибка загрузки списка треков</li>';
             }
         }
 
         function createPlaylist() {
-            playlist.innerHTML = ''; // Очищаем существующий плейлист
+            playlist.innerHTML = '';
             tracks.forEach((track, index) => {
                 const li = document.createElement('li');
                 li.textContent = track.title;
@@ -102,15 +142,20 @@
                 playlist.appendChild(li);
             });
             if (tracks.length > 0) {
-                playTrack(0);
+                selectTrack(0);
             }
         }
 
-        function playTrack(index) {
+        function selectTrack(index) {
             currentTrack = index;
             audioPlayer.src = baseUrl + tracks[currentTrack].file;
-            audioPlayer.play().catch(e => console.error("Playback failed:", e));
             updateActiveTrack();
+        }
+
+        function playTrack(index) {
+            selectTrack(index);
+            audioPlayer.play().catch(e => console.error("Playback failed:", e));
+            updatePlayButton();
         }
 
         function updateActiveTrack() {
@@ -124,21 +169,37 @@
             playTrack(currentTrack);
         }
 
+        function updatePlayButton() {
+            playButton.textContent = audioPlayer.paused ? 'Воспроизвести' : 'Пауза';
+        }
+
+        playButton.onclick = () => {
+            if (audioPlayer.paused) {
+                audioPlayer.play().catch(e => console.error("Playback failed:", e));
+            } else {
+                audioPlayer.pause();
+            }
+            updatePlayButton();
+        };
+
         audioPlayer.addEventListener('ended', nextTrack);
         audioPlayer.addEventListener('error', (e) => {
             console.error('Error loading audio:', e);
             nextTrack();
         });
+        audioPlayer.addEventListener('play', updatePlayButton);
+        audioPlayer.addEventListener('pause', updatePlayButton);
 
         function applyTelegramStyles() {
-            document.body.style.backgroundColor = tg.themeParams.bg_color;
-            document.body.style.color = tg.themeParams.text_color;
+            document.documentElement.style.setProperty('--primary-color', tg.themeParams.button_color);
+            document.documentElement.style.setProperty('--secondary-color', tg.themeParams.secondary_bg_color);
+            document.documentElement.style.setProperty('--text-color', tg.themeParams.text_color);
+            document.documentElement.style.setProperty('--bg-color', tg.themeParams.bg_color);
         }
 
         tg.onEvent('themeChanged', applyTelegramStyles);
         applyTelegramStyles();
 
-        // Загружаем список файлов при запуске
         fetchFileList();
     </script>
 </body>
