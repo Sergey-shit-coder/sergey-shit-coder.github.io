@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer-when-downgrade" />
     <title>Музыкальный плеер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -36,7 +36,7 @@
 </head>
 <body>
     <h1>Музыкальный плеер</h1>
-    <div id="googleSignIn"></div>
+    <button id="authorize" style="display:block;">Авторизоваться в Google Drive</button>
     <button id="listFiles" style="display:none;">Показать список файлов</button>
     <ul id="fileList"></ul>
     <audio id="player" controls></audio>
@@ -49,38 +49,20 @@
         let accessToken = null;
 
         function gapiLoaded() {
-            google.accounts.id.initialize({
+            google.accounts.oauth2.initTokenClient({
                 client_id: '203194022759-73jt3olh89ie5thvalk4ebb0gjt28j3g.apps.googleusercontent.com',
-                callback: handleCredentialResponse,
-                scope: 'https://www.googleapis.com/auth/drive.readonly'
+                scope: 'https://www.googleapis.com/auth/drive.readonly',
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        accessToken = tokenResponse.access_token;
+                        console.log("Access token received:", accessToken);
+                        document.getElementById('listFiles').style.display = 'block';
+                    }
+                },
+            }).then(client => {
+                tokenClient = client;
+                document.getElementById('authorize').onclick = () => tokenClient.requestAccessToken();
             });
-            google.accounts.id.renderButton(
-                document.getElementById('googleSignIn'),
-                { theme: 'outline', size: 'large' }
-            );
-        }
-
-        function handleCredentialResponse(response) {
-            console.log("Received credential response");
-            const responsePayload = decodeJwtResponse(response.credential);
-            console.log("ID: " + responsePayload.sub);
-            console.log('Full Name: ' + responsePayload.name);
-            console.log('Given Name: ' + responsePayload.given_name);
-            console.log('Family Name: ' + responsePayload.family_name);
-            console.log("Image URL: " + responsePayload.picture);
-            console.log("Email: " + responsePayload.email);
-
-            accessToken = response.credential;
-            document.getElementById('listFiles').style.display = 'block';
-        }
-
-        function decodeJwtResponse(token) {
-            let base64Url = token.split('.')[1];
-            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            return JSON.parse(jsonPayload);
         }
 
         function listFiles() {
@@ -95,7 +77,6 @@
             })
             .then(response => {
                 console.log("Response status:", response.status);
-                console.log("Response headers:", response.headers);
                 if (!response.ok) {
                     throw new Error('Network response was not ok: ' + response.statusText);
                 }
@@ -149,8 +130,6 @@
             })
             .catch(error => console.error("Error playing file:", error));
         }
-
-        document.getElementById('listFiles').onclick = listFiles;
 
         window.onload = gapiLoaded;
     </script>
