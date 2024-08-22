@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
     <title>Музыкальный плеер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body {
@@ -33,7 +36,7 @@
 </head>
 <body>
     <h1>Музыкальный плеер</h1>
-    <button id="authorize" onclick="handleAuthClick()">Авторизоваться в Google Drive</button>
+    <button id="authorize">Авторизоваться в Google Drive</button>
     <button id="listFiles" style="display:none;">Показать список файлов</button>
     <div id="fileList"></div>
     <audio id="player" controls></audio>
@@ -47,19 +50,34 @@
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
         const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 
+        function handleClientLoad() {
+            gapi.load('client', initClient);
+        }
+
+        function initClient() {
+            gapi.client.init({
+                apiKey: API_KEY,
+                clientId: CLIENT_ID,
+                discoveryDocs: DISCOVERY_DOCS,
+                scope: SCOPES
+            }).then(function() {
+                document.getElementById('authorize').onclick = handleAuthClick;
+            }).catch(function(error) {
+                console.error('Error initializing GAPI client:', error);
+            });
+        }
+
         function handleAuthClick() {
-            const tokenClient = google.accounts.oauth2.initTokenClient({
+            google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
-                callback: (response) => {
-                    if (response.error !== undefined) {
-                        throw (response);
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        document.getElementById('listFiles').style.display = 'block';
+                        listFiles();
                     }
-                    document.getElementById('listFiles').style.display = 'block';
-                    listFiles();
                 },
-            });
-            tokenClient.requestAccessToken();
+            }).requestAccessToken();
         }
 
         function listFiles() {
@@ -105,16 +123,7 @@
             });
         }
 
-        document.getElementById('authorize').onclick = handleAuthClick;
-    </script>
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapi.load('client', initializeGapiClient)"></script>
-    <script>
-        async function initializeGapiClient() {
-            await gapi.client.init({
-                apiKey: API_KEY,
-                discoveryDocs: DISCOVERY_DOCS,
-            });
-        }
+        window.onload = handleClientLoad;
     </script>
 </body>
 </html>
