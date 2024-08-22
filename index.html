@@ -36,7 +36,21 @@
 </head>
 <body>
     <h1>Музыкальный плеер</h1>
-    <button id="authorize" style="display:block;">Авторизоваться в Google Drive</button>
+    <div id="g_id_onload"
+         data-client_id="203194022759-73jt3olh89ie5thvalk4ebb0gjt28j3g.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-shape="rectangular"
+         data-theme="outline"
+         data-text="signin_with"
+         data-size="large"
+         data-logo_alignment="left">
+    </div>
     <button id="listFiles" style="display:none;">Показать список файлов</button>
     <ul id="fileList"></ul>
     <audio id="player" controls></audio>
@@ -45,24 +59,12 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        let tokenClient;
         let accessToken = null;
 
-        function gapiLoaded() {
-            google.accounts.oauth2.initTokenClient({
-                client_id: '203194022759-73jt3olh89ie5thvalk4ebb0gjt28j3g.apps.googleusercontent.com',
-                scope: 'https://www.googleapis.com/auth/drive.readonly',
-                callback: (tokenResponse) => {
-                    if (tokenResponse && tokenResponse.access_token) {
-                        accessToken = tokenResponse.access_token;
-                        console.log("Access token received:", accessToken);
-                        document.getElementById('listFiles').style.display = 'block';
-                    }
-                },
-            }).then(client => {
-                tokenClient = client;
-                document.getElementById('authorize').onclick = () => tokenClient.requestAccessToken();
-            });
+        function handleCredentialResponse(response) {
+            console.log("Encoded JWT ID token: " + response.credential);
+            accessToken = response.credential;
+            document.getElementById('listFiles').style.display = 'block';
         }
 
         function listFiles() {
@@ -131,7 +133,7 @@
             .catch(error => console.error("Error playing file:", error));
         }
 
-        window.onload = gapiLoaded;
+        document.getElementById('listFiles').onclick = listFiles;
     </script>
 </body>
 </html>
