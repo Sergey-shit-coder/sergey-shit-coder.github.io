@@ -65,7 +65,7 @@
         let accessToken = null;
 
         function gapiLoaded() {
-            google.accounts.oauth2.initTokenClient({
+            tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
                 callback: (tokenResponse) => {
@@ -74,11 +74,9 @@
                         document.getElementById('listFiles').style.display = 'block';
                     }
                 },
-            }).then(client => {
-                tokenClient = client;
-                document.getElementById('authorize').onclick = () => tokenClient.requestAccessToken();
-                document.getElementById('listFiles').onclick = listFiles;
             });
+            document.getElementById('authorize').onclick = () => tokenClient.requestAccessToken();
+            document.getElementById('listFiles').onclick = listFiles;
         }
 
         function listFiles() {
