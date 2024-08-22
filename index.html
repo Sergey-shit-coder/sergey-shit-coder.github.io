@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
-    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
     <title>Музыкальный плеер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body {
@@ -16,21 +13,10 @@
             flex-direction: column;
             align-items: center;
             padding: 20px;
-            background-color: #f0f0f0;
         }
         #player {
             margin-top: 20px;
             width: 300px;
-        }
-        button {
-            margin: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 5px;
         }
         #fileList {
             list-style-type: none;
@@ -51,9 +37,18 @@
     <h1>Музыкальный плеер</h1>
     <div id="g_id_onload"
          data-client_id="203194022759-73jt3olh89ie5thvalk4ebb0gjt28j3g.apps.googleusercontent.com"
-         data-callback="handleCredentialResponse">
+         data-callback="handleCredentialResponse"
+         data-auto_select="true"
+         data-auto_prompt="false">
     </div>
-    <div class="g_id_signin" data-type="standard"></div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-shape="rectangular"
+         data-logo_alignment="left">
+    </div>
     <button id="listFiles" style="display:none;">Показать список файлов</button>
     <ul id="fileList"></ul>
     <audio id="player" controls></audio>
@@ -61,10 +56,6 @@
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
-
-        const CLIENT_ID = '203194022759-73jt3olh89ie5thvalk4ebb0gjt28j3g.apps.googleusercontent.com';
-        const API_KEY = 'AIzaSyD62Gc4V10LOv0Qfd6n5iZKNFZHTsMYNjA';
-        const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 
         let accessToken = null;
 
@@ -110,9 +101,7 @@
             .catch(error => console.error("Error playing file:", error));
         }
 
-        window.onload = () => {
-            document.getElementById('listFiles').onclick = listFiles;
-        };
+        document.getElementById('listFiles').onclick = listFiles;
     </script>
 </body>
 </html>
