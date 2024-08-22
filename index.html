@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer-when-downgrade" />
     <title>Музыкальный плеер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -66,28 +67,57 @@
         }
 
         function listFiles() {
+            console.log("Listing files, access token:", accessToken);
+            if (!accessToken) {
+                console.error("No access token available");
+                return;
+            }
+
             fetch('https://www.googleapis.com/drive/v3/files?q=mimeType+contains+%27audio/%27&fields=files(id,name)', {
                 headers: { 'Authorization': 'Bearer ' + accessToken }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.statusText);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log("Received data:", data);
                 const fileList = document.getElementById('fileList');
                 fileList.innerHTML = '';
-                data.files.forEach(file => {
-                    const li = document.createElement('li');
-                    li.textContent = file.name;
-                    li.onclick = () => playFile(file.id);
-                    fileList.appendChild(li);
-                });
+                if (data.files && data.files.length > 0) {
+                    data.files.forEach(file => {
+                        const li = document.createElement('li');
+                        li.textContent = file.name;
+                        li.onclick = () => playFile(file.id);
+                        fileList.appendChild(li);
+                    });
+                } else {
+                    fileList.innerHTML = '<li>No audio files found</li>';
+                }
             })
-            .catch(error => console.error('Error listing files:', error));
+            .catch(error => {
+                console.error('Error listing files:', error);
+                document.getElementById('fileList').innerHTML = '<li>Error loading files</li>';
+            });
         }
 
         function playFile(fileId) {
+            if (!accessToken) {
+                console.error("No access token available");
+                return;
+            }
+
             fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
                 headers: { 'Authorization': 'Bearer ' + accessToken }
             })
-            .then(response => response.blob())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.statusText);
+                }
+                return response.blob();
+            })
             .then(blob => {
                 const url = URL.createObjectURL(blob);
                 const audioPlayer = document.getElementById('player');
@@ -102,6 +132,15 @@
         }
 
         document.getElementById('listFiles').onclick = listFiles;
+
+        // Добавим обработчик для проверки загрузки Google Identity Services
+        window.onload = function() {
+            if (typeof google === 'undefined') {
+                console.error("Google Identity Services не загружены");
+            } else {
+                console.log("Google Identity Services загружены успешно");
+            }
+        };
     </script>
 </body>
 </html>
