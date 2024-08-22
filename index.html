@@ -92,13 +92,16 @@
         function playFile(fileId) {
             gapi.client.drive.files.get({
                 fileId: fileId,
-                fields: 'webContentLink'
+                alt: 'media'
             }).then(function(response) {
+                return response.blob();
+            }).then(function(blob) {
+                var url = URL.createObjectURL(blob);
                 var audioPlayer = document.getElementById('player');
-                audioPlayer.src = response.result.webContentLink;
-                audioPlayer.play();
+                audioPlayer.src = url;
+                return audioPlayer.play();
             }).catch(function(error) {
-                console.error("Error retrieving file:", error);
+                console.error("Error playing file:", error);
             });
         }
 
