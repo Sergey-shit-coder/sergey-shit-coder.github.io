@@ -33,7 +33,7 @@
 </head>
 <body>
     <h1>Музыкальный плеер</h1>
-    <button id="authorize">Авторизоваться в Google Drive</button>
+    <button id="authorize" onclick="handleAuthClick()">Авторизоваться в Google Drive</button>
     <button id="listFiles" style="display:none;">Показать список файлов</button>
     <div id="fileList"></div>
     <audio id="player" controls></audio>
@@ -48,20 +48,23 @@
         const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
         function handleClientLoad() {
+            console.log("handleClientLoad вызвана");
             gapi.load('client:auth2', initClient);
         }
 
         function initClient() {
+            console.log("initClient начала выполнение");
             gapi.client.init({
                 apiKey: API_KEY,
                 clientId: CLIENT_ID,
                 discoveryDocs: DISCOVERY_DOCS,
                 scope: SCOPES
             }).then(function () {
+                console.log("gapi.client.init выполнено успешно");
                 document.getElementById('authorize').onclick = handleAuthClick;
                 document.getElementById('listFiles').onclick = listFiles;
             }, function(error) {
-                console.log(JSON.stringify(error, null, 2));
+                console.log("Ошибка в gapi.client.init:", JSON.stringify(error, null, 2));
             });
         }
 
